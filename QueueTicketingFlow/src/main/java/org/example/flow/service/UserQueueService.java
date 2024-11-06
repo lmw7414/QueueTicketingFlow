@@ -10,6 +10,9 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.Objects;
 
@@ -47,6 +50,14 @@ public class UserQueueService {
                 .map(rank -> rank >= 0);
     }
 
+    // 진입이 가능한 상태인지 조회
+    public Mono<Boolean> isAllowedByToken(final String queue, final Long userId, final String token) {
+        return this.generateToken(queue, userId)
+                .filter(gen -> gen.equalsIgnoreCase(token))
+                .map(i -> true)
+                .defaultIfEmpty(false);
+    }
+
     // 진입을 허용
     // wait queue에서 사용자 제거 -> proceed queue에 사용자 추가
     public Mono<Long> allowUser(final String queue, final Long count) {
@@ -57,6 +68,22 @@ public class UserQueueService {
                                 Instant.now().getEpochSecond()
                         )
                 ).count();
+    }
+
+    public Mono<String> generateToken(final String queue, final Long userId) {
+        MessageDigest digest = null; // 입력 데이터(문자열, 파일 등)를 해시 알고리즘에 따라 암호화된 고정 길이의 해시 값으로 변환
+        try {
+            digest = MessageDigest.getInstance("SHA-256");
+            var input = "user-queue-%s-%d".formatted(queue, userId);
+            byte[] encodeHash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte aByte : encodeHash) {
+                hexString.append(String.format("%02x", aByte));
+            }
+            return Mono.just(hexString.toString());
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public Mono<Long> getRank(final String queue, final Long userId) {
