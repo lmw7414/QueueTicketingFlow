@@ -35,4 +35,11 @@ public class UserQueueController {
                 .map(AllowedUserResponse::new);
     }
 
+    @GetMapping("/rank")
+    public Mono<RankNumberResponse> getRankUser(@RequestParam(name = "queue", defaultValue = "default") String queue,
+                                                @RequestParam(name = "user_id") Long userId) {
+        return userQueueService.getRank(queue, userId)
+                .map(RankNumberResponse::new);
+    }
+
 }
