@@ -52,4 +52,77 @@ class UserQueueServiceTest {
                 .expectError(ApplicationException.class)
                 .verify();
     }
+
+    @Test
+    void isNotAllowed() {
+        StepVerifier.create(
+                        userQueueService.isAllowed("default", 100L))
+                .expectNext(false)
+                .verifyComplete();
+    }
+
+    @Test
+    void isNotAllowed2() {
+        StepVerifier.create(
+                        userQueueService.registerWaitingQueue("default", 100L)
+                                .then(userQueueService.allowUser("default", 3L))
+                                .then(userQueueService.isAllowed("default", 101L)))
+                .expectNext(false)
+                .verifyComplete();
+    }
+
+    @Test
+    void isAllowed() {
+        StepVerifier.create(
+                        userQueueService.registerWaitingQueue("default", 100L)
+                                .then(userQueueService.allowUser("default", 3L))
+                                .then(userQueueService.isAllowed("default", 100L)))
+                .expectNext(true)
+                .verifyComplete();
+    }
+
+    @Test
+    void EmptyAllowUser() {
+        StepVerifier.create(userQueueService.allowUser("default", 3L))
+                .expectNext(0L)
+                .verifyComplete();
+
+    }
+
+    @Test
+    void allowUser() {
+        StepVerifier.create(
+                        userQueueService.registerWaitingQueue("default", 100L)
+                                .then(userQueueService.registerWaitingQueue("default", 101L))
+                                .then(userQueueService.registerWaitingQueue("default", 102L))
+                                .then(userQueueService.allowUser("default", 2L)))
+                .expectNext(2L)
+                .verifyComplete();
+
+    }
+
+    @Test
+    void allowUser2() {
+        StepVerifier.create(
+                        userQueueService.registerWaitingQueue("default", 100L)
+                                .then(userQueueService.registerWaitingQueue("default", 101L))
+                                .then(userQueueService.registerWaitingQueue("default", 102L))
+                                .then(userQueueService.allowUser("default", 5L)))
+                .expectNext(3L)
+                .verifyComplete();
+
+    }
+
+    @Test
+    void allowUserAfterRegisterWaitQueue() {
+        StepVerifier.create(
+                        userQueueService.registerWaitingQueue("default", 100L)
+                                .then(userQueueService.registerWaitingQueue("default", 101L))
+                                .then(userQueueService.registerWaitingQueue("default", 102L))
+                                .then(userQueueService.allowUser("default", 3L))
+                                .then(userQueueService.registerWaitingQueue("default", 200L)))
+                .expectNext(1L)
+                .verifyComplete();
+    }
+
 }
